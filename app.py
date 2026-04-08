@@ -1,26 +1,26 @@
 import uvicorn
 from openenv.core.env_server import create_fastapi_app
 from models import CalendarSchedulerAction, CalendarSchedulerObservation
-from .calendar_scheduler_environment import CalendarSchedulerEnvironment
+from server.calendar_scheduler_environment import CalendarSchedulerEnvironment
 
-# Create the standard OpenEnv app
+# Create app
 app = create_fastapi_app(
     CalendarSchedulerEnvironment,
     CalendarSchedulerAction,
     CalendarSchedulerObservation
 )
 
-#  Optional (removes 404 on /)
+# Optional root endpoint
 @app.get("/")
 def home():
     return {"status": "running"}
 
-#  REQUIRED for OpenEnv validation
+
+# IMPORTANT: main must be VERY SIMPLE
 def main():
-    """Main entry point for the server."""
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run("server.app:app", host="0.0.0.0", port=8000)
 
 
-# REQUIRED block
+# IMPORTANT: must be EXACT
 if __name__ == "__main__":
     main()
