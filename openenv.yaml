@@ -1,0 +1,7 @@
+name: calendar_scheduler_antra
+version: "1.0.0"
+description: Simple calendar environment where an agent learns to book meetings without clashes. Made by Antra Shrivastava for Round 1.
+tags:
+  - calendar
+  - scheduling
+  - planning
