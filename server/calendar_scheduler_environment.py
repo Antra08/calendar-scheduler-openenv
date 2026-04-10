@@ -1,14 +1,13 @@
 import uuid
 import os
-from typing import Tuple
 from openenv.core import Environment
 from models import CalendarSchedulerObservation, CalendarSchedulerState
 from openai import OpenAI
 
-api_base = os.environ.get("API_BASE_URL")
-api_key = os.environ.get("API_KEY")
-
-client = OpenAI(base_url=api_base, api_key=api_key) if api_base and api_key else None
+client = OpenAI(
+    base_url=os.environ["API_BASE_URL"],
+    api_key=os.environ["API_KEY"]
+) if "API_BASE_URL" in os.environ and "API_KEY" in os.environ else None
 
 
 class CalendarSchedulerEnvironment(Environment):
@@ -37,45 +36,53 @@ class CalendarSchedulerEnvironment(Environment):
             feedback="Ready"
         )
 
-    def step(self, action) -> Tuple[CalendarSchedulerObservation, float, bool, dict]:
-        # OpenEnv passes actions as dicts, unwrap if nested
-        if isinstance(action, dict) and "action_type" not in action:
-            action = action.get("action", action)
+    def step(self, action):
+        if isinstance(action, dict):
+            if "action_type" not in action:
+                action = action.get("action", action)
+            action_type = action.get("action_type")
+            title = action.get("title", "Meeting")
+            start_time = action.get("start_time", "10:30")
+        else:
+            action_type = action.action_type
+            title = action.title or "Meeting"
+            start_time = action.start_time or "10:30"
 
-        action_type = action.get("action_type")
-        title = action.get("title", "Meeting")
-        start_time = action.get("start_time", "10:30")
+        title_lower = title.lower()
 
-        if client:
+        if action_type != "book_meeting":
+            reward = 0.0
+        elif "easy" in title_lower:
+            reward = 1.0
+        elif "medium" in title_lower:
+            reward = 0.6
+        elif "hard" in title_lower:
+            reward = 0.2
+        else:
+            reward = 0.4
+
+        if client is not None:
             try:
                 response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {
-                            "role": "system",
-                            "content": "You are a smart calendar scheduling assistant."
-                        },
-                        {
-                            "role": "user",
-                            "content": f"Schedule a meeting titled '{title}' at {start_time}. Suggest if this is a good time."
-                        }
+                        {"role": "system", "content": "You are a calendar assistant."},
+                        {"role": "user", "content": f"Schedule meeting '{title}' at {start_time}"}
                     ]
                 )
                 llm_output = response.choices[0].message.content
             except Exception:
-                llm_output = f"Meeting scheduled at {start_time}"
+                llm_output = f"Meeting '{title}' scheduled at {start_time}"
         else:
-            llm_output = f"Meeting scheduled at {start_time}"
-
-        reward = 0.4 if action_type == "book_meeting" else -0.1
+            llm_output = f"Meeting '{title}' scheduled at {start_time}"
 
         self._state.events.append({
             "title": title,
             "start_time": start_time
         })
 
-        obs = CalendarSchedulerObservation(
-            message=llm_output,
+        return CalendarSchedulerObservation(
+            message=f"{llm_output} | Reward: {reward:.2f}",
             available_slots=[
                 {"start": "09:30"},
                 {"start": "10:30"}
@@ -83,8 +90,6 @@ class CalendarSchedulerEnvironment(Environment):
             current_schedule=self._state.events,
             feedback="Processed"
         )
-
-        return obs, reward, True, {}
 
     def state(self):
         return self._state
