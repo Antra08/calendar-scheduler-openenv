@@ -59,16 +59,24 @@ for task in tasks:
             data = resp.json()
             obs = data.get("observation", {})
             message = obs.get("message", "")
+
             match = re.search(r"Reward:\s*([0-9.]+)", message)
-            reward = float(match.group(1)) if match else 0.0
+            reward = float(match.group(1)) if match else 0.5
+
+            # clamp reward to (0, 1)
+            if reward >= 1.0:
+                reward = 0.9
+            elif reward <= 0.0:
+                reward = 0.1
+
             done = "true"
         else:
-            reward = 0.0
+            reward = 0.1
             done = "true"
             success = False
 
     except:
-        reward = 0.0
+        reward = 0.1
         done = "true"
         success = False
 
