@@ -5,10 +5,10 @@ from openai import OpenAI
 
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
-HF_TOKEN = os.getenv("HF_TOKEN", "dummy_token")
+API_KEY = os.getenv("API_KEY", "dummy_key")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:8000")
 
-client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
 tasks = ["easy", "medium", "hard"]
 
@@ -37,7 +37,7 @@ for task in tasks:
                 max_tokens=5
             )
         except Exception:
-            pass
+            error = "llm_error"
 
         resp = requests.post(f"{ENV_URL}/step", json={"action": action}, timeout=10)
 
@@ -47,7 +47,8 @@ for task in tasks:
             message = obs.get("message", "")
 
             match = re.search(r"Reward:\s*([0-9.]+)", message)
-            reward = float(match.group(1)) if match else 0.1
+            if match:
+                reward = float(match.group(1))
 
             if reward <= 0.0:
                 reward = 0.1
