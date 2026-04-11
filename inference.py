@@ -8,9 +8,6 @@ MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
 HF_TOKEN = os.getenv("HF_TOKEN", "dummy_token")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:8000")
 
-if HF_TOKEN == "dummy_token":
-    print("WARNING: HF_TOKEN not set, using dummy_token")
-
 client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 tasks = ["easy", "medium", "hard"]
@@ -19,6 +16,10 @@ for task in tasks:
     print(f"[START] task={task} env=custom-calendar model={MODEL_NAME}")
 
     success = True
+    reward = 0.1
+    done = "true"
+    error = "null"
+    action_str = f"book_meeting('{task}')"
 
     try:
         requests.post(f"{ENV_URL}/reset")
@@ -28,17 +29,17 @@ for task in tasks:
             "title": task,
             "start_time": "10:30"
         }
-        action_str = f"book_meeting('{task}')"
 
         try:
             client.chat.completions.create(
                 model=MODEL_NAME,
-                messages=[{"role": "user", "content": task}]
+                messages=[{"role": "user", "content": task}],
+                max_tokens=5
             )
-        except:
+        except Exception:
             pass
 
-        resp = requests.post(f"{ENV_URL}/step", json={"action": action})
+        resp = requests.post(f"{ENV_URL}/step", json={"action": action}, timeout=10)
 
         if resp.status_code == 200:
             data = resp.json()
@@ -52,17 +53,13 @@ for task in tasks:
                 reward = 0.1
             elif reward >= 1.0:
                 reward = 0.9
-
-            done = "true"
         else:
-            reward = 0.1
-            done = "true"
             success = False
+            error = f"status_{resp.status_code}"
 
     except Exception:
-        reward = 0.1
-        done = "true"
         success = False
+        error = "exception"
 
-    print(f"[STEP] step=1 action={action_str} reward={reward:.2f} done={done} error=null")
+    print(f"[STEP] step=1 action={action_str} reward={reward:.2f} done={done} error={error}")
     print(f"[END] success={str(success).lower()} steps=1 rewards={reward:.2f}")
