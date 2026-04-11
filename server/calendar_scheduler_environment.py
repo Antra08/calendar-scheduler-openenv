@@ -16,6 +16,7 @@ class CalendarSchedulerEnvironment(Environment):
     def __init__(self):
         super().__init__()
         self.episode_id = str(uuid.uuid4())
+        self.reward = 0.5
         self.reset()
 
     def reset(self):
@@ -41,48 +42,39 @@ class CalendarSchedulerEnvironment(Environment):
             if "action_type" not in action:
                 action = action.get("action", action)
             action_type = action.get("action_type")
-            title = action.get("title", "Meeting")
-            start_time = action.get("start_time", "10:30")
+            title = action.get("title", "meeting")
         else:
             action_type = action.action_type
-            title = action.title or "Meeting"
-            start_time = action.start_time or "10:30"
+            title = action.title or "meeting"
 
-        title_lower = title.lower()
+        title_lower = str(title).lower()
 
         if action_type != "book_meeting":
-            reward = 0.0
+            reward = 0.1
         elif "easy" in title_lower:
-            reward = 1.0
+            reward = 0.9
         elif "medium" in title_lower:
             reward = 0.6
         elif "hard" in title_lower:
             reward = 0.2
         else:
-            reward = 0.4
+            reward = 0.5
 
-        if client is not None:
+        self.reward = reward
+
+        if client:
             try:
-                response = client.chat.completions.create(
+                client.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": "You are a calendar assistant."},
-                        {"role": "user", "content": f"Schedule meeting '{title}' at {start_time}"}
-                    ]
+                    messages=[{"role": "user", "content": title}]
                 )
-                llm_output = response.choices[0].message.content
-            except Exception:
-                llm_output = f"Meeting '{title}' scheduled at {start_time}"
-        else:
-            llm_output = f"Meeting '{title}' scheduled at {start_time}"
+            except:
+                pass
 
-        self._state.events.append({
-            "title": title,
-            "start_time": start_time
-        })
+        self._state.events.append({"title": title})
 
         return CalendarSchedulerObservation(
-            message=f"{llm_output} | Reward: {reward:.2f}",
+            message=f"{title} scheduled | Reward: {reward:.2f}",
             available_slots=[
                 {"start": "09:30"},
                 {"start": "10:30"}
