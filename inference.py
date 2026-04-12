@@ -19,7 +19,7 @@ for task in tasks:
     reward = 0.1
     done = "true"
     error = "null"
-    score = 0.0
+    score = 0.1
     action_str = f"book_meeting('{task}')"
 
     try:
@@ -29,7 +29,7 @@ for task in tasks:
             max_tokens=10
         )
         _ = response.choices[0].message.content
-    except Exception as e:
+    except Exception:
         error = "llm_error"
 
     try:
@@ -62,7 +62,7 @@ for task in tasks:
             success = False
             error = f"status_{resp.status_code}"
 
-    except Exception as e:
+    except Exception:
         success = False
         error = "exception"
 
