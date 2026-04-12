@@ -22,6 +22,13 @@ for task in tasks:
     score = 0.0
     action_str = f"book_meeting('{task}')"
 
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": f"Schedule a {task} meeting"}],
+        max_tokens=10
+    )
+    _ = response.choices[0].message.content
+
     try:
         requests.post(f"{ENV_URL}/reset")
 
@@ -30,13 +37,6 @@ for task in tasks:
             "title": task,
             "start_time": "10:30"
         }
-
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": f"Schedule a {task} meeting"}],
-            max_tokens=10
-        )
-        _ = response.choices[0].message.content
 
         resp = requests.post(f"{ENV_URL}/step", json={"action": action}, timeout=10)
 
