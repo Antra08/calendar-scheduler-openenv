@@ -3,9 +3,15 @@ import requests
 import re
 from openai import OpenAI
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+if "API_BASE_URL" in os.environ and "API_KEY" in os.environ:
+    API_BASE_URL = os.environ["API_BASE_URL"]
+    API_KEY = os.environ["API_KEY"]
+else:
+    print("Running locally: using fallback API config")
+    API_BASE_URL = "https://api.openai.com/v1"
+    API_KEY = "dummy_key"
+
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
-API_KEY = os.getenv("API_KEY", "dummy_key")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:8000")
 
 client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
