@@ -3,14 +3,8 @@ import requests
 import re
 from openai import OpenAI
 
-if "API_BASE_URL" in os.environ and "API_KEY" in os.environ:
-    API_BASE_URL = os.environ["API_BASE_URL"]
-    API_KEY = os.environ["API_KEY"]
-else:
-    print("Running locally: using fallback API config")
-    API_BASE_URL = "https://api.openai.com/v1"
-    API_KEY = "dummy_key"
-
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
+API_KEY = os.environ.get("API_KEY", "dummy_key")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
 ENV_URL = os.getenv("ENV_URL", "http://localhost:8000")
 
@@ -37,11 +31,12 @@ for task in tasks:
         }
 
         try:
-            client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=MODEL_NAME,
-                messages=[{"role": "user", "content": task}],
-                max_tokens=5
+                messages=[{"role": "user", "content": f"Schedule a {task} meeting"}],
+                max_tokens=10
             )
+            _ = response.choices[0].message.content
         except Exception:
             error = "llm_error"
 
